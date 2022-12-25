@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'board'
-require 'pry-byebug'
 
 # Creates a knight piece
 class Knight

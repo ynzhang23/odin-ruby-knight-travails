@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'pry-byebug'
-
 class Board
   attr_reader :position, :connected
   attr_accessor :previous_positions
