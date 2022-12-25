@@ -4,10 +4,14 @@ require 'pry-byebug'
 
 class Board
   attr_reader :position, :connected
+  attr_accessor :previous_positions
 
-  def initialize(position)
+  def initialize(position, previous_positions)
     @position = position
     @connected = possible_moves(position)
+    @previous_positions = []
+    @previous_positions.push(*previous_positions)
+    @previous_positions.push(position)
   end
 
   # 1.1 Return if move is possible
