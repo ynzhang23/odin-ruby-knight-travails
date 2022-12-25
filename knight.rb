@@ -5,9 +5,11 @@ require 'pry-byebug'
 
 # Creates a knight piece
 class Knight
+  attr_reader :landed
+
   def initialize(start_pos, end_pos)
-    @start = Board.new(start_pos)
-    @end = Board.new(end_pos)
+    @start = Board.new(start_pos, [])
+    @end = Board.new(end_pos, [])
     # All Nodes
     @travelled = []
     # Tracking Arrays
@@ -23,46 +25,56 @@ class Knight
 
   # First move
   def first_move
-    @latest_positions << @start.position
+    @latest_positions << @start
 
     # Add current positions' next steps to queue and track travelled node to graph
-    @latest_positions.each do |pos|
+    @latest_positions.each do |node|
       # Check and return previous step if current positions are the destination
-      if landed_on_destination(pos)
-        puts pos.to_s
-        return @landed = true
+      if landed_on_destination(node.position)
+        p 'You think you are funny huh?'
+        p "It will take #{node.previous_positions.length - 1} steps to reach #{@end.position} from #{@start.position}"
+        @landed = true
+        break
       end
-      @travelled << Board.new(pos)
-      @next_step.push(*Board.new(pos).connected)
+      @travelled << node
+      # Create nodes for the next step
+      node.connected.each do |pos|
+        @next_step.push(Board.new(pos, @start.previous_positions))
+      end
     end
     # Reset queue
     @latest_positions.clear
   end
 
-  # Subsequent moves
+  # Subsequent moves on loop until destination is found
   def next_move
+    # Update current nodes
     @latest_positions = @next_step.dup
     @next_step.clear
-
-    binding.pry
-    # Loop across the current positions
-    @latest_positions.each do |pos|
-      # Check and return previous step if current positions are the destination
-      if landed_on_destination(pos)
-        puts pos.to_s
-        return @landed = true
+    # Loop across the current nodes
+    @latest_positions.each do |node|
+      # Stop the loop and return current node if knight is on the destination
+      if landed_on_destination(node.position)
+        p "It will take #{node.previous_positions.length - 1} steps to reach #{@end.position} from #{@start.position}"
+        node.previous_positions.each do |position|
+          p position
+        end
+        @landed = true
+        break
       end
-      # Create and add vertice to graph
-      @travelled << Board.new(pos)
-      # Add next steps from current step
-      @next_step.push(*Board.new(pos).connected)
+      # Add vertex to graph
+      @travelled << node
+      # Add possible nodes to travel on the next step, and adding current nodes' travel history to it
+      node.connected.each do |pos|
+        @next_step.push(*Board.new(pos, node.previous_positions))
+      end
     end
     # Filter next steps to prevent re-travel
-    @next_step.reject! {|pos| extract_positions.include?(pos)}
+    @next_step.reject! { |node| extract_positions.include?(node.position) }
     @latest_positions.clear
   end
 
-  # Return positions from all vertices
+  # Return array of travelled positions
   def extract_positions
     temp_array = []
     @travelled.each do |position_node|
@@ -71,11 +83,78 @@ class Knight
     temp_array
   end
 
-  def create_path
-    first_move
-    next_move until @landed == true
+  # Get start location
+  def self.start_position
+    puts'
+(y)
+ 7 |_|#|_|#|_|#|_|#|
+ 6 |#|_|#|_|#|_|#|_|
+ 5 |_|#|_|#|_|#|_|#|
+ 4 |#|_|#|_|#|_|#|_|
+ 3 |_|#|_|#|_|#|_|#|
+ 2 |#|_|#|_|#|_|#|_|
+ 1 |_|#|_|#|_|#|_|#|
+ 0 |#|_|#|_|#|_|#|_|
+    0 1 2 3 4 5 6 7 (x)
+    '
+    start_pos = []
+    loop do
+      puts 'Where would you like the knight to start? (x-coordinate)'
+      start_pos[0] = gets.chomp.to_i
+      break if start_pos[0] < 8 && start_pos[0] >= 0
+    end
+    loop do
+      puts 'Where would you like the knight to start? (y-coordinate)'
+      start_pos[1] = gets.chomp.to_i
+      break if start_pos[1] < 8 && start_pos[1] >= 0
+    end
+    start_pos
+  end
+
+  # Get end location
+  def self.end_position
+    end_pos = []
+    loop do
+      puts 'Where would you like the knight to end? (x-coordinate)'
+      end_pos[0] = gets.chomp.to_i
+      break if end_pos[0] < 8 && end_pos[0] >= 0
+    end
+    loop do
+      puts 'Where would you like the knight to end? (y-coordinate)'
+      end_pos[1] = gets.chomp.to_i
+      break if end_pos[1] < 8 && end_pos[1] >= 0
+    end
+    end_pos
+  end
+
+  # Get start and end location and create knight
+  def self.create_knight_from_input
+    start_pos = Knight.start_position
+    end_pos = Knight.end_position
+    Knight.new(start_pos, end_pos)
   end
 end
 
-knight = Knight.new([4, 3], [2, 3])
-knight.create_path
+puts '
+█▄▀ █▄░█ █ █▀▀ █░█ ▀█▀
+█░█ █░▀█ █ █▄█ █▀█ ░█░
+
+▀█▀ █▀█ ▄▀█ █░█ ▄▀█ █ █░░ █▀
+░█░ █▀▄ █▀█ ▀▄▀ █▀█ █ █▄▄ ▄█
+'
+knight = Knight.create_knight_from_input
+knight.first_move
+knight.next_move until knight.landed == true
+puts '
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⡀⢀⣶⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⣟⠙⢿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣷⣄⠻⣿⣿⣿⣿⣿⣿⣿⣄⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠈⠻⠿⠿⣿⣿⣿⣿⣆⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠙⢿⣿⠟⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⢰⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀'
